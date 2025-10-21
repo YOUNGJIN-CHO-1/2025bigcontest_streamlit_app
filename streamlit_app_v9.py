@@ -3,7 +3,7 @@ import sys
 import json
 import time
 import shutil
-import asyncio
+# import asyncio
 import streamlit as st
 import google.generativeai as genai
 from google.generativeai import protos
@@ -68,7 +68,7 @@ if not GOOGLE_API_KEY:
 
 # --- 최종 확인 및 API 설정 ---
 if GOOGLE_API_KEY:
-    st.success("API 키 로드 성공.") # (디버깅 용도로 사용)
+    # st.success("API 키 로드 성공.") # (디버깅 용도로 사용)
     genai.configure(api_key=GOOGLE_API_KEY)
 else:
     # 1, 2, 3 순서 모두 실패한 경우
@@ -167,6 +167,22 @@ class InteractiveParallelAgent:
 - 내부 데이터: 트렌드 변화율, 최근 3개월 추세, 주요 이벤트(급등/급락)
 - 외부 데이터: 가맹점의 영업 환경 수준 (양호, 보통, 관찰, 주의 등), 잠재고객 특성, 경쟁 강도 진단 내용
 
+[중요] KPIs 선정 지침
+'kpis' 목록을 생성할 때, 반드시 다음의 **[유효한 KPI 컬럼 목록]**에 있는 이름과
+**정확히 일치하는** 단어만 사용해야 합니다.
+목록에 없는 단어(예: '객단가', '성장률')를 KPI 이름으로 지어내지 마세요.
+
+[유효한 KPI 컬럼 목록]
+- '동일 업종 매출금액 비율'
+- '동일 업종 매출건수 비율'
+- '동일 업종 내 매출 순위 비율'
+- '동일 상권 내 매출 순위 비율'
+- '재방문 고객 비중'
+- '신규 고객 비중'
+- '거주 이용 고객 비율'
+- '직장 이용 고객 비율'
+- '유동인구 이용 고객 비율'
+
 결과로 현재 직면한 구체적인 이슈(problem_statement)와 문제 해결을 위한 측정 가능한 핵심 지표(kpis)를 도출하세요. **외부 환경 요인을 문제 정의에 반드시 반영하세요.**
 """
 
@@ -230,9 +246,8 @@ class InteractiveParallelAgent:
 
 # 최종 결과는 전체 보고서 내용을 마크다운 형식의 문자열로 포함해야 합니다.
 
-    def __init__(self, sync_model: Any, async_model: Any, csv_path: str, json_data: List[Dict[str, Any]]):
+    def __init__(self, sync_model: Any, csv_path: str, json_data: List[Dict[str, Any]]):
         self.model = sync_model
-        self.async_model = async_model
         self.context = {}
         self.json_data = json_data
         self._last_external_data = None
@@ -290,35 +305,35 @@ class InteractiveParallelAgent:
                 time.sleep(wait_time)
         return {"error": f"LLM 동기 호출 최종 실패 ({retries}번 재시도): {last_exception}"}
 
-    async def _generate_content_async(self, prompt: str, response_schema: Optional[protos.Schema] = None, generation_config: Optional[Dict[str, Any]] = None, retries: int = 3, delay: int = 5) -> Dict[str, Any]:
-            last_exception = None
-            for i in range(retries):
-                try:
-                    final_config_dict = generation_config.copy() if generation_config else {}
-                    if response_schema:
-                        final_config_dict["response_schema"] = response_schema
-                        final_config_dict["response_mime_type"] = "application/json"
+    # async def _generate_content_async(self, prompt: str, response_schema: Optional[protos.Schema] = None, generation_config: Optional[Dict[str, Any]] = None, retries: int = 3, delay: int = 5) -> Dict[str, Any]:
+    #         last_exception = None
+    #         for i in range(retries):
+    #             try:
+    #                 final_config_dict = generation_config.copy() if generation_config else {}
+    #                 if response_schema:
+    #                     final_config_dict["response_schema"] = response_schema
+    #                     final_config_dict["response_mime_type"] = "application/json"
                     
-                    final_gen_config = genai.types.GenerationConfig(**final_config_dict)
+    #                 final_gen_config = genai.types.GenerationConfig(**final_config_dict)
 
-                    await asyncio.sleep(1)
-                    response = await self.async_model.generate_content_async(prompt, generation_config=final_gen_config)
+    #                 await asyncio.sleep(1)
+    #                 response = await self.async_model.generate_content_async(prompt, generation_config=final_gen_config)
 
-                    if response.candidates and response.candidates[0].finish_reason != 1:
-                        reason_map = {0: "UNKNOWN", 1: "STOP", 2: "MAX_TOKENS", 3: "SAFETY", 4: "RECITATION", 5: "OTHER"}
-                        reason_str = reason_map.get(response.candidates[0].finish_reason, "기타")
-                        raise ValueError(f"API 호출 비정상 종료 (Reason: {reason_str})")
-                    if not response.text:
-                        safety_ratings = response.candidates[0].safety_ratings if response.candidates else "N/A"
-                        raise ValueError(f"API 응답 내용 비어 있음 (Safety: {safety_ratings})")
-                    return json.loads(response.text)
-                except (json.JSONDecodeError, ValueError, Exception) as e:
-                    last_exception = e
-                    if i == retries - 1: break
-                    wait_time = delay * (2 ** i)
-                    console_logger.warning(f"⚠️ LLM 비동기 호출 실패 ({e}). {wait_time}초 후 재시도... (시도 {i + 1}/{retries})")
-                    await asyncio.sleep(wait_time)
-            return {"error": f"LLM 비동기 호출 최종 실패 ({retries}번 재시도): {last_exception}"}
+    #                 if response.candidates and response.candidates[0].finish_reason != 1:
+    #                     reason_map = {0: "UNKNOWN", 1: "STOP", 2: "MAX_TOKENS", 3: "SAFETY", 4: "RECITATION", 5: "OTHER"}
+    #                     reason_str = reason_map.get(response.candidates[0].finish_reason, "기타")
+    #                     raise ValueError(f"API 호출 비정상 종료 (Reason: {reason_str})")
+    #                 if not response.text:
+    #                     safety_ratings = response.candidates[0].safety_ratings if response.candidates else "N/A"
+    #                     raise ValueError(f"API 응답 내용 비어 있음 (Safety: {safety_ratings})")
+    #                 return json.loads(response.text)
+    #             except (json.JSONDecodeError, ValueError, Exception) as e:
+    #                 last_exception = e
+    #                 if i == retries - 1: break
+    #                 wait_time = delay * (2 ** i)
+    #                 console_logger.warning(f"⚠️ LLM 비동기 호출 실패 ({e}). {wait_time}초 후 재시도... (시도 {i + 1}/{retries})")
+    #                 await asyncio.sleep(wait_time)
+    #         return {"error": f"LLM 비동기 호출 최종 실패 ({retries}번 재시도): {last_exception}"}
 
     def _transform(self, initial_input: str):
         console_logger.info("1단계: 사용자 요청 변환 시작...")
@@ -443,7 +458,7 @@ class InteractiveParallelAgent:
         }
         console_logger.info("2-2단계: 데이터 압축 완료.")
     
-    async def _fetch_external_data_async(self, dong_name: Optional[str], biz_category: Optional[str]) -> Optional[Dict[str, Any]]:
+    def _fetch_external_data(self, dong_name: Optional[str], biz_category: Optional[str]) -> Optional[Dict[str, Any]]:
         self._last_external_data = None
         if not dong_name or not biz_category or not self.json_data:
             console_logger.warning(f"⚠️ 외부 데이터 검색 건너뛰기: 정보 부족 또는 JSON 데이터 없음")
@@ -463,7 +478,7 @@ class InteractiveParallelAgent:
         console_logger.warning(f"⚠️ 외부 데이터 찾을 수 없음.")
         return None
 
-    async def _define_problem(self, exploration_result: Dict[str, Any], transformation_result: Dict[str, Any], external_data: Optional[Dict[str, Any]]):
+    def _define_problem(self, exploration_result: Dict[str, Any], transformation_result: Dict[str, Any], external_data: Optional[Dict[str, Any]]):
         console_logger.info("3단계: 문제 정의 시작...")
         external_data_prompt_part = "외부 환경 데이터: 해당 지역/업종 정보 없음"
         if external_data:
@@ -473,7 +488,7 @@ class InteractiveParallelAgent:
             else: external_data_prompt_part = "외부 환경 데이터: 관련 정보 추출 실패"
         user_prompt = f"🔹 문맥(Context):\n- 최초 요청: {json.dumps(transformation_result, indent=2, ensure_ascii=False)}\n- 압축된 내부 성과 데이터: {json.dumps(exploration_result, indent=2, ensure_ascii=False)}\n- {external_data_prompt_part}"
         full_prompt = f"{self._DEFINE_PROBLEM_SYSTEM_PROMPT}\n\n{user_prompt}"
-        response = await self._generate_content_async(full_prompt, response_schema=self._DEFINE_PROBLEM_SCHEMA, generation_config={"max_output_tokens": 8000})
+        response = self._generate_content_sync(full_prompt, response_schema=self._DEFINE_PROBLEM_SCHEMA, generation_config={"max_output_tokens": 8000})
         self.context['problem_definition'] = response
         console_logger.info("3단계: 문제 정의 완료.")
 
@@ -652,9 +667,9 @@ def load_data_and_init_agent():
             json_content = json.load(f)
         
         sync_model = genai.GenerativeModel('gemini-2.5-flash') 
-        async_model = genai.GenerativeModel('gemini-2.5-flash')
+        # async_model = genai.GenerativeModel('gemini-2.5-flash')
         
-        agent = InteractiveParallelAgent(sync_model, async_model, csv_path, json_content)
+        agent = InteractiveParallelAgent(sync_model, csv_path, json_content)
         
         if agent.df is None or agent.df.empty:
             st.error(f"CSV 데이터 로딩 실패. 파일 확인: {csv_path}"); st.stop()
@@ -668,17 +683,31 @@ def load_data_and_init_agent():
 
 agent = load_data_and_init_agent()
 
-async def perform_analysis_async(agent_instance):
-    store_info = agent_instance.context['target_store_info']
-    internal_data_task = asyncio.to_thread(agent_instance._compress_store_data)
-    external_data_task = agent_instance._fetch_external_data_async(store_info.get('행정동'), store_info.get('업종_분류'))
-    _, fetched_external_data = await asyncio.gather(internal_data_task, external_data_task)
-    
-    # _compress_store_data 오류 확인
-    if "error" in agent_instance.context and "exploration" not in agent_instance.context:
-        raise RuntimeError(f"Internal data compression failed: {agent_instance.context['error']}") # 오류 발생 시 예외 던짐
+def perform_analysis_sync(agent_instance):
+    """
+    비동기(async) 로직을 모두 제거하고 순차적(sync)으로 데이터 분석을 수행하는 함수입니다.
+    """
+    store_info = agent_instance.context.get('target_store_info')
+    if not store_info:
+        raise RuntimeError("Target store information is missing.")
 
-    await agent_instance._define_problem(agent_instance.context['exploration'], agent_instance.context['transformation'], fetched_external_data)
+    # 1. 내부 데이터 압축 (동기)
+    agent_instance._compress_store_data()
+
+    # _compress_store_data 실행 후 오류 확인
+    if "error" in agent_instance.context and "exploration" not in agent_instance.context:
+        # 데이터 압축 단계에서 발생한 오류를 명확히 전달합니다.
+        raise RuntimeError(f"Internal data compression failed: {agent_instance.context['error']}")
+
+    # 2. 외부 데이터 가져오기 (동기)
+    # 중요: 이 함수를 호출하려면 _fetch_external_data_async -> _fetch_external_data 로
+    # 해당 함수의 이름과 정의에서 async/await를 제거해야 합니다.
+    fetched_external_data = agent_instance._fetch_external_data(store_info.get('행정동'), store_info.get('업종_분류'))
+    
+    # 3. 데이터 기반 문제 정의 (동기)
+    # 중요: 이 함수를 호출하려면 _define_problem 함수 정의에서 async/await를 제거하고,
+    # 그 내부의 LLM 호출도 _generate_content_sync를 사용하도록 수정해야 합니다.
+    agent_instance._define_problem(agent_instance.context['exploration'], agent_instance.context['transformation'], fetched_external_data)
 
 def run_full_pipeline_resumable(user_text: str | None = None):
     P = st.session_state.pipeline
@@ -714,7 +743,7 @@ def run_full_pipeline_resumable(user_text: str | None = None):
     if P["step"] == "analysis":
         try:
             # ✅ 비동기/병렬 작업 실행 및 오류 처리 강화
-            asyncio.run(perform_analysis_async(agent))
+            perform_analysis_sync(agent)
         except RuntimeError as e: # perform_analysis_async 내부에서 발생한 오류 잡기
              user_err(f"데이터 분석 중 오류 발생: {e}", details=agent.context)
              P["running"] = False; _set_step("idle"); return
@@ -790,7 +819,7 @@ else:
                 charts = create_kpi_charts(kpi_list, P["timeseries_data"])
                 if charts:
                     for chart in charts:
-                        st.plotly_chart(chart, width='stretch')
+                        st.plotly_chart(chart, use_container_width=True)
                 else:
                     st.info("선정된 KPI에 대한 시계열 그래프를 생성할 수 없습니다.") 
         # 최종 보고서 표시

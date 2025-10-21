@@ -211,7 +211,7 @@ temp/
 tmp/
 
 # Data files (if they contain sensitive information)
-data/
+# data/
 # *.csv
 # *.json
 # *.pkl

@@ -202,6 +202,7 @@ $RECYCLE.BIN/
 
 # Streamlit
 .streamlit/
+.env
 
 # Project specific
 *.log
@@ -230,3 +231,5 @@ tmp/
 .venv/
 venv/
 env/
+*.pyc
+__pycache__/

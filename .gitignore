@@ -235,4 +235,5 @@ env/
 __pycache__/
 
 mcp_server/
-streamlit_app/"uv.lock" 
+streamlit_app/
+"uv.lock" 

@@ -225,8 +225,8 @@ class InteractiveParallelAgent:
         self.context = {}
         self.json_data = json_data
         self._last_external_data = None
-        self.vectorstore = None  # RAG: 벡터 저장소 초기화
-        self.rag_context = None  # RAG: 검색 결과 저장 변수
+        self.vectorstore = None  
+        self.rag_context = None 
 
         try:
             # RAG: 임베딩 모델 및 벡터 저장소 로드
@@ -500,7 +500,7 @@ class InteractiveParallelAgent:
             context_parts = []
             for i, doc in enumerate(context_docs):
                 doc_string = f"--- 참고 문서 {i+1} ---\n"
-                source = doc.metadata.get('source', '알 수 없음')
+                source = doc.metadata.get('source', '출처 미상')
                 doc_string += f"   출처 (Source): {source}\n"
                 doc_string += doc.page_content.strip()
                 context_parts.append(doc_string)

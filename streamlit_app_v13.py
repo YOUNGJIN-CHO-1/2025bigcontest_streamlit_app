@@ -16,7 +16,7 @@ from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 import logging
 from dotenv import load_dotenv
 
-from langchain_community.embeddings import HuggingFaceBgeEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
 # =========================
@@ -230,20 +230,19 @@ class InteractiveParallelAgent:
 
         try:
             # RAG: 임베딩 모델 및 벡터 저장소 로드
-            console_logger.info("RAG: 임베딩 모델 로드 중 (BAAI/bge-m3)...")
+            console_logger.info("RAG: 임베딩 모델 로드 중 dragonkue/multilingual-e5...")
             # HuggingFaceBgeEmbeddings는 CPU에서도 잘 작동합니다.
-            model_name = "BAAI/bge-m3"
+            model_name = "dragonkue/multilingual-e5-small-ko-v2"
             model_kwargs = {'device': 'cpu'}
             encode_kwargs = {'normalize_embeddings': True}
             
-            # (참고: streamlit_app_v12.py 상단에 HuggingFaceBgeEmbeddings가 import 되어 있어야 합니다)
-            embeddings = HuggingFaceBgeEmbeddings(
+            embeddings = HuggingFaceEmbeddings(
                 model_name=model_name,
                 model_kwargs=model_kwargs,
                 encode_kwargs=encode_kwargs
             )
             
-            db_path = "faiss_index_chunk500" # 사용자 지정 경로
+            db_path = "faiss_index" # 사용자 지정 경로
             self.vectorstore = FAISS.load_local(
                 db_path, 
                 embeddings, 
@@ -487,11 +486,9 @@ class InteractiveParallelAgent:
             return
 
         try:
-            # 사용자의 쿼리를 업종 특화 마케팅 전략으로 구체화
             question = f"{industry} 업종 마케팅 전략 및 성공 사례"
             
-            # 너무 많은 문서는 토큰 낭비일 수 있으므로 k=5 정도로 조절 (기존 k=10)
-            retriever = self.vectorstore.as_retriever(search_kwargs={'k': 5}) 
+            retriever = self.vectorstore.as_retriever(search_kwargs={'k': 7}) 
             context_docs = retriever.invoke(question)
             
             if not context_docs:

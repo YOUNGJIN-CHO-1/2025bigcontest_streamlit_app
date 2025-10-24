@@ -63,11 +63,6 @@ if not GOOGLE_API_KEY:
     load_dotenv() # .env 파일의 변수를 환경 변수로 로드
     GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 
-# 3. .env에도 값이 없다면 하드코딩 
-if not GOOGLE_API_KEY:
-    st.warning("⚠️ GOOGLE_API_KEY가 st.secrets 또는 .env에 설정되지 않았습니다. 하드코딩된 키를 사용합니다.")
-    GOOGLE_API_KEY = "AIzaSyB8R3nurDOohfAvKXSgBUVRkoliXtfnTKo"
-
 # --- 최종 확인 및 API 설정 ---
 if GOOGLE_API_KEY:
     # st.success("API 키 로드 성공.") # (디버깅 용도로 사용)

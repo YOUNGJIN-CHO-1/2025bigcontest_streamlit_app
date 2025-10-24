@@ -233,3 +233,6 @@ venv/
 env/
 *.pyc
 __pycache__/
+
+mcp_server/
+streamlit_app/
